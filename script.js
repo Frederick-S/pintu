@@ -640,31 +640,47 @@
     if (!imageDataURL) return;
 
     if (googleAdsReady && typeof window.adBreak === "function") {
+      console.log("[GoogleAds] 开始请求激励广告");
       showAdToast("正在加载广告…");
       let rewarded = false;
       window.adBreak({
         type: "reward",
         name: "preview-original",
         beforeReward: function (showAdFn) {
+          console.log("[GoogleAds] beforeReward 回调触发");
           showAdFn();
         },
         beforeAd: function () {
+          console.log("[GoogleAds] beforeAd 回调触发 - 广告即将播放");
           adToastEl.hidden = true;
         },
-        afterAd: function () {},
+        afterAd: function () {
+          console.log("[GoogleAds] afterAd 回调触发 - 广告播放结束");
+        },
         adViewed: function () {
+          console.log("[GoogleAds] adViewed 回调触发 - 用户看完广告");
           rewarded = true;
           previewFullEl.src = imageDataURL;
           previewModalEl.hidden = false;
         },
         adDismissed: function () {
+          console.log("[GoogleAds] adDismissed 回调触发 - 广告被关闭");
           showAdToast("需要看完广告才能查看原图");
         },
         adBreakDone: function (placementInfo) {
-          if (!placementInfo) return;
+          console.log("[GoogleAds] adBreakDone 回调触发", placementInfo);
+          if (!placementInfo) {
+            console.warn("[GoogleAds] placementInfo 为空");
+            return;
+          }
+          console.log("[GoogleAds] breakStatus:", placementInfo.breakStatus);
+          console.log("[GoogleAds] rewarded:", rewarded);
+          
           if (placementInfo.breakStatus === "notReady") {
+            console.warn("[GoogleAds] 广告状态为 notReady，降级到模拟广告");
             showSimulatedAd();
           } else if (!rewarded && placementInfo.breakStatus === "viewed") {
+            console.log("[GoogleAds] 广告已观看但 adViewed 未触发，手动显示预览");
             previewFullEl.src = imageDataURL;
             previewModalEl.hidden = false;
           }
@@ -673,6 +689,7 @@
       return;
     }
 
+    console.warn("[GoogleAds] SDK 不可用，使用模拟广告");
     showSimulatedAd();
   }
 

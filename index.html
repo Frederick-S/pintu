@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>滑块拼图</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Google Ad Placement API 配置（上线前替换 ca-pub-3492464766284443） -->
+  <script>
+    window.AD_CONFIG = {
+      adClient: "ca-pub-3492464766284443", // 替换为你的 AdSense 发布商 ID
+      adFrequency: "30s"
+    };
+    window.adsbygoogle = window.adsbygoogle || [];
+    var adBreak = adConfig = function(o) { adsbygoogle.push(o); };
+  </script>
+  <!-- 上线部署到正式域名后，删除 data-adbreak-test="on" 以启用真实广告 -->
+  <script async
+    data-adbreak-test="on"
+    src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3492464766284443"
+    crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <!-- ===================== 开始页面 ===================== -->
+  <section id="start-screen" class="screen start-screen">
+    <div class="start-card">
+      <!-- 标题区 -->
+      <div class="start-icon">🧩</div>
+      <h1 class="start-title">滑块拼图</h1>
+      <p class="start-tagline">经典益智，挑战你的空间思维</p>
+      <p class="start-desc">选择难度，开始挑战</p>
+
+      <!-- 难度选择 -->
+      <div class="difficulty-group">
+        <button class="diff-btn selected" data-grid="3">
+          <span class="diff-grid">3×3</span>
+          <span class="diff-label">简单</span>
+        </button>
+        <button class="diff-btn" data-grid="4">
+          <span class="diff-grid">4×4</span>
+          <span class="diff-label">中等</span>
+        </button>
+        <button class="diff-btn" data-grid="5">
+          <span class="diff-grid">5×5</span>
+          <span class="diff-label">困难</span>
+        </button>
+      </div>
+
+      <!-- 图片选择 -->
+      <p class="start-desc">选择拼图图片</p>
+      <div class="image-picker" id="image-picker">
+        <!-- JS 根据 PUZZLE_IMAGES 动态渲染 -->
+      </div>
+
+      <!-- 自定义图片上传 -->
+      <label class="upload-area">
+        <input type="file" id="file-input" accept="image/*" hidden>
+        <span class="upload-placeholder" id="upload-placeholder">
+          <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+            <path d="m21 15-5-5L5 21"/>
+          </svg>
+          或上传自定义图片
+        </span>
+        <img id="preview-img" class="preview-img" hidden>
+      </label>
+
+      <!-- 剩余次数（开始页） -->
+      <div id="play-counter" class="play-counter">
+        🎮 剩余次数：<span id="play-remaining">5</span>/5
+        <span id="play-recovery-info" class="play-recovery-info" hidden></span>
+        <button id="btn-share-start" class="btn-share">📤 分享得次数</button>
+        <span id="share-cooldown-start" class="share-cooldown-text" hidden></span>
+      </div>
+
+      <!-- 开始按钮 -->
+      <button id="btn-start" class="btn btn-primary btn-large btn-start">开始游戏</button>
+    </div>
+  </section>
+
+  <!-- ===================== 游戏页面 ===================== -->
+  <section id="game-screen" class="screen game-screen" hidden>
+    <div class="container">
+      <!-- 顶部导航 -->
+      <header class="top-bar">
+        <button id="btn-back" class="btn btn-icon" title="返回">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.5"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/>
+          </svg>
+        </button>
+        <h1 class="title">滑块拼图</h1>
+        <span id="difficulty-badge" class="badge">3×3</span>
+      </header>
+
+      <!-- 计时 / 步数 -->
+      <div class="stats-bar">
+        <div class="stat">
+          <svg class="stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+          </svg>
+          <div class="stat-body">
+            <span class="stat-label">时间</span>
+            <span id="timer" class="stat-value">00:00</span>
+          </div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat">
+          <svg class="stat-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22"/>
+            <path d="m18 2 4 4-4 4"/><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2"/>
+            <path d="M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8"/>
+          </svg>
+          <div class="stat-body">
+            <span class="stat-label">步数</span>
+            <span id="move-count" class="stat-value">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 剩余次数（游戏页） -->
+      <div id="game-play-counter" class="play-counter play-counter-game">
+        🎮 剩余次数：<span id="game-play-remaining">5</span>/5
+        <span id="game-play-recovery-info" class="play-recovery-info" hidden></span>
+        <button id="btn-share-game" class="btn-share">📤 分享得次数</button>
+        <span id="share-cooldown-game" class="share-cooldown-text" hidden></span>
+      </div>
+
+      <!-- 最佳记录 -->
+      <div id="best-record" class="best-record" hidden>
+        <svg class="best-icon" width="14" height="14" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+          <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22"/>
+          <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22"/>
+          <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+        </svg>
+        <span class="best-label">最佳</span>
+        <span id="best-display" class="best-display">--</span>
+      </div>
+
+      <!-- 操作按钮 -->
+      <div class="action-buttons">
+        <button id="btn-restart" class="btn btn-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 22v-6h6"/>
+          </svg>
+          重新开始
+        </button>
+        <button id="btn-preview" class="btn btn-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+          预览原图
+        </button>
+      </div>
+
+      <!-- 拼图面板 -->
+      <main id="board" class="board"></main>
+
+      <!-- 提示文字 -->
+      <footer class="hint">点击空白格相邻的图块即可移动</footer>
+    </div>
+  </section>
+
+  <!-- ===================== 胜利弹窗 ===================== -->
+  <div id="victory-overlay" class="modal-overlay" hidden>
+    <canvas id="confetti-canvas" class="confetti-canvas"></canvas>
+    <div class="modal victory-modal">
+      <div class="victory-header">
+        <div class="trophy">🏆</div>
+        <h2>恭喜完成！</h2>
+        <p class="victory-subtitle">太棒了，你成功复原了拼图</p>
+        <p id="victory-record" class="victory-new-record" hidden>🎉 新纪录！</p>
+      </div>
+      <div class="victory-stats">
+        <div class="v-stat">
+          <span class="v-stat-val" id="victory-time">00:00</span>
+          <span class="v-stat-label">用时</span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="v-stat">
+          <span class="v-stat-val" id="victory-moves">0</span>
+          <span class="v-stat-label">步数</span>
+        </div>
+        <div class="v-divider"></div>
+        <div class="v-stat">
+          <span class="v-stat-val" id="victory-diff">3×3</span>
+          <span class="v-stat-label">难度</span>
+        </div>
+      </div>
+      <div class="modal-buttons">
+        <button id="btn-again" class="btn btn-primary btn-large">再来一局</button>
+        <button id="btn-home" class="btn btn-ghost btn-large">返回首页</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== 原图预览弹窗 ===================== -->
+  <div id="preview-modal" class="modal-overlay" hidden>
+    <div class="modal preview-modal-content">
+      <img id="preview-full" class="preview-full" alt="原图预览">
+      <button id="btn-close-preview" class="btn btn-primary">关闭</button>
+    </div>
+  </div>
+
+  <!-- ===================== 广告提示 Toast ===================== -->
+  <div id="ad-toast" class="ad-toast" hidden></div>
+
+  <!-- ===================== 次数恢复 Toast ===================== -->
+  <div id="play-toast" class="play-toast" hidden></div>
+
+  <!-- ===================== 模拟微信分享弹窗 ===================== -->
+  <div id="share-overlay" class="modal-overlay" hidden>
+    <div class="modal share-modal-content">
+      <div class="share-wechat-icon">💬</div>
+      <h3 class="share-title">即将分享给微信好友</h3>
+      <p class="share-desc">（模拟）分享成功后可获得1次游戏机会</p>
+      <div class="modal-buttons">
+        <button id="btn-share-confirm" class="btn btn-primary btn-large">确认分享</button>
+        <button id="btn-share-cancel" class="btn btn-ghost btn-large">取消</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>

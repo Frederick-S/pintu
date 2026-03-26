@@ -1151,6 +1151,10 @@
   });
 
   btnPreview.addEventListener("click", () => {
+    console.log("[Debug] 预览按钮被点击");
+    console.log("[Debug] imageDataURL 存在:", !!imageDataURL);
+    console.log("[Debug] googleAdsReady:", googleAdsReady);
+    console.log("[Debug] adBreak 函数存在:", typeof window.adBreak === "function");
     showRewardAd();
   });
 

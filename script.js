@@ -608,7 +608,13 @@
       googleAdsReady = true;
       console.log("[GoogleAds] Ad Placement API 就绪");
       try {
-        window.adConfig({ preloadAdBreaks: "on", sound: "on" });
+        window.adConfig({
+          preloadAdBreaks: "on",
+          sound: "on",
+          onReady: () => {
+            console.log("[GoogleAds] 广告预加载完成");
+          }
+        });
       } catch (e) {
         console.warn("[GoogleAds] adConfig 调用失败:", e);
       }
@@ -634,7 +640,7 @@
 
   /**
    * 用户点击"预览原图"时调用。
-   * 优先使用 Google Ad Placement API 激励广告；SDK 不可用时降级为模拟广告倒计时。
+   * 使用 Google Ad Placement API 激励广告。
    */
   function showRewardAd() {
     if (!imageDataURL) return;
@@ -643,54 +649,79 @@
       console.log("[GoogleAds] 开始请求激励广告");
       showAdToast("正在加载广告…");
       let rewarded = false;
+      let adCallbackTriggered = false;
+      
+      // 超时保护：10秒后隐藏加载提示
+      const timeoutId = setTimeout(() => {
+        if (!adCallbackTriggered) {
+          console.warn("[GoogleAds] 广告请求超时（无回调）");
+          adToastEl.hidden = true;
+        }
+      }, 10000);
+      
       window.adBreak({
         type: "reward",
         name: "preview-original",
         beforeReward: function (showAdFn) {
           console.log("[GoogleAds] beforeReward 回调触发");
+          adCallbackTriggered = true;
+          clearTimeout(timeoutId);
           showAdFn();
         },
         beforeAd: function () {
           console.log("[GoogleAds] beforeAd 回调触发 - 广告即将播放");
+          adCallbackTriggered = true;
+          clearTimeout(timeoutId);
           adToastEl.hidden = true;
         },
         afterAd: function () {
           console.log("[GoogleAds] afterAd 回调触发 - 广告播放结束");
+          adCallbackTriggered = true;
         },
         adViewed: function () {
           console.log("[GoogleAds] adViewed 回调触发 - 用户看完广告");
+          adCallbackTriggered = true;
           rewarded = true;
           previewFullEl.src = imageDataURL;
           previewModalEl.hidden = false;
         },
         adDismissed: function () {
           console.log("[GoogleAds] adDismissed 回调触发 - 广告被关闭");
+          adCallbackTriggered = true;
           showAdToast("需要看完广告才能查看原图");
         },
         adBreakDone: function (placementInfo) {
           console.log("[GoogleAds] adBreakDone 回调触发", placementInfo);
+          adCallbackTriggered = true;
+          clearTimeout(timeoutId);
+          
           if (!placementInfo) {
             console.warn("[GoogleAds] placementInfo 为空");
+            adToastEl.hidden = true;
             return;
           }
           console.log("[GoogleAds] breakStatus:", placementInfo.breakStatus);
           console.log("[GoogleAds] rewarded:", rewarded);
           
           if (placementInfo.breakStatus === "notReady") {
-            console.warn("[GoogleAds] 广告状态为 notReady，降级到模拟广告");
-            showSimulatedAd();
+            console.warn("[GoogleAds] 广告状态为 notReady");
+            adToastEl.hidden = true;
+            showAdToast("广告暂时不可用，请稍后再试");
           } else if (!rewarded && placementInfo.breakStatus === "viewed") {
             console.log("[GoogleAds] 广告已观看但 adViewed 未触发，手动显示预览");
             previewFullEl.src = imageDataURL;
             previewModalEl.hidden = false;
+          } else if (placementInfo.breakStatus === "dismissed") {
+            console.log("[GoogleAds] 广告被用户关闭");
+            adToastEl.hidden = true;
           }
         },
       });
       return;
     }
 
-    console.warn("[GoogleAds] SDK 不可用，使用模拟广告");
-    showSimulatedAd();
+    console.warn("[GoogleAds] SDK 不可用");
+    showAdToast("广告功能暂时不可用");
   }
 
   /* ---------- 模拟广告降级（Google Ads 不可用时） ---------- */
